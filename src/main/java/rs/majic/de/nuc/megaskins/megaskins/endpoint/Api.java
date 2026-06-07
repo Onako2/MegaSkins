@@ -22,6 +22,8 @@ import java.util.Random;
 @Controller
 public class Api {
 
+    static File[] files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
+
     @GetMapping(value="/api/skin/image")
     public @ResponseBody ResponseEntity<byte[]> image(@RequestParam(name="hash", required=true) String hash) throws IOException {
         if (!isValidHash(hash)) {
@@ -45,7 +47,6 @@ public class Api {
 
     @GetMapping(value = "/api/skin/image/random")
     public @ResponseBody ResponseEntity<byte[]> random() throws IOException {
-        File[] files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "image/png");
         if (files == null || files.length == 0) {
@@ -77,7 +78,6 @@ public class Api {
 
     @GetMapping(value = "/api/skin/random")
     public @ResponseBody ResponseEntity<SkinManager.SkinPreviewInformation> skinRandom() throws IOException {
-        File[] files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
         if (files == null || files.length == 0) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         java.util.List<String> allowed = new java.util.ArrayList<>();
         for (File f : files) {
