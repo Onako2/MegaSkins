@@ -23,6 +23,7 @@ import java.util.Random;
 public class Api {
 
     static File[] files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
+    static Random random = new Random();
 
     @GetMapping(value="/api/skin/image")
     public @ResponseBody ResponseEntity<byte[]> image(@RequestParam(name="hash", required=true) String hash) throws IOException {
@@ -52,16 +53,10 @@ public class Api {
         if (files == null || files.length == 0) {
             return new ResponseEntity<>(headers, HttpStatus.NOT_FOUND);
         }
-        java.util.List<File> allowed = new java.util.ArrayList<>();
-        for (File f : files) {
-            String name = f.getName();
-            String h = name.endsWith(".txt") ? name.substring(0, name.length() - 4) : name;
-            SkinManager.SkinPreviewInformation info = Constants.skinManager.getSkinPreviewInformation(h);
-            if (info != null && !info.unsafe()) allowed.add(f);
+        File chosen = files[random.nextInt(files.length)];
+        if (Constants.skinManager.isUnsafe(Files.readString(chosen.toPath()))) {
+            return random();
         }
-        if (allowed.isEmpty()) return new ResponseEntity<>(headers, HttpStatus.NOT_FOUND);
-        Random random = new Random();
-        File chosen = allowed.get(random.nextInt(allowed.size()));
         String chosenHash = chosen.getName().replaceFirst("\\.txt$", "");
         ResponseEntity<byte[]> response = image(chosenHash);
         if (response.getStatusCode() != HttpStatus.OK) {
@@ -79,16 +74,13 @@ public class Api {
     @GetMapping(value = "/api/skin/random")
     public @ResponseBody ResponseEntity<SkinManager.SkinPreviewInformation> skinRandom() throws IOException {
         if (files == null || files.length == 0) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        java.util.List<String> allowed = new java.util.ArrayList<>();
-        for (File f : files) {
-            String h = f.getName().replaceFirst("\\.txt$", "");
-            SkinManager.SkinPreviewInformation info = Constants.skinManager.getSkinPreviewInformation(h);
-            if (info != null && !info.unsafe()) allowed.add(h);
+        File chosen = files[random.nextInt(files.length)];
+        String description = Files.readString(chosen.toPath());
+        if (Constants.skinManager.isUnsafe(description)) {
+            return skinRandom();
         }
-        if (allowed.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        Random random = new Random();
-        String chosen = allowed.get(random.nextInt(allowed.size()));
-        return aSkinPreviewInfo(chosen);
+        String chosenHash = chosen.getName().replaceFirst("\\.txt$", "");
+        return aSkinPreviewInfo(chosenHash);
     }
 
     private ResponseEntity<SkinManager.SkinPreviewInformation> aSkinPreviewInfo(String hash) {
