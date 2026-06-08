@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 
 public class SkinManager {
     @Getter
@@ -22,12 +23,19 @@ public class SkinManager {
     private static final HttpClient client = HttpClient.newBuilder().build();
 
     @Getter
-    private final String[] forbiddenTags;
+    private String[] forbiddenTags = new String[]{"hitler", "naked", "nsfw"}; // default values;
 
-    public SkinManager(File skinsImageFolder, File skinsDescriptionFolder, String[] forbiddenTags) {
+    public SkinManager(File skinsImageFolder, File skinsDescriptionFolder) {
         this.skinsImageFolder = skinsImageFolder;
         this.skinsDescriptionFolder = skinsDescriptionFolder;
-        this.forbiddenTags = forbiddenTags;
+        File filterList = new File("banned_words.txt");
+        try {
+            if (!filterList.exists()) {
+                filterList.createNewFile();
+                Files.writeString(filterList.toPath(), "hitler\nnaked\nnsfw");
+            }
+            this.forbiddenTags = Arrays.stream(Files.readString(filterList.toPath()).split("\n")).filter(string -> !string.isBlank()).toArray(String[]::new);
+        } catch (Exception ignored) {}
     }
 
     public void initializeFilesIfMissing() throws IOException {
@@ -128,5 +136,6 @@ public class SkinManager {
         }
     }
 
-    public record SkinPreviewInformation(String hash, boolean unsafe) {}
+    public record SkinPreviewInformation(String hash, boolean unsafe) {
+    }
 }
