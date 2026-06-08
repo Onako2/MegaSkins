@@ -52,7 +52,7 @@ public class Api {
     static final int MAX_RESULTS = 10;
 
     @GetMapping(value="/api/skin/image")
-    public @ResponseBody ResponseEntity<byte[]> image(@RequestParam(name="hash", required=true) String hash) throws IOException {
+    public @ResponseBody ResponseEntity<byte[]> image(@RequestParam(name="hash") String hash) throws IOException {
         Constants.statistics.newRequest();
         if (!isValidHash(hash)) {
             HttpHeaders headers = new HttpHeaders();
@@ -91,13 +91,13 @@ public class Api {
     }
 
     @GetMapping(value = "/api/skin")
-    public @ResponseBody ResponseEntity<SkinManager.SkinPreviewInformation> skin(@RequestParam(name="hash", required=true) String hash) throws IOException {
+    public @ResponseBody ResponseEntity<SkinManager.SkinPreviewInformation> skin(@RequestParam(name="hash") String hash) {
         Constants.statistics.newRequest();
         return aSkinPreviewInfo(hash);
     }
 
     @GetMapping(value = "/api/skin/random")
-    public @ResponseBody ResponseEntity<SkinManager.SkinPreviewInformation> skinRandom() throws IOException {
+    public @ResponseBody ResponseEntity<SkinManager.SkinPreviewInformation> skinRandom() {
         Constants.statistics.newRequest();
         String chosenHash = skinData.keySet().toArray(String[]::new)[random.nextInt(skinData.size())];
         if (Constants.skinManager.isUnsafe(skinData.get(chosenHash))) {
@@ -115,7 +115,7 @@ public class Api {
     }
 
     @GetMapping(value = "/api/skin/description")
-    public @ResponseBody ResponseEntity<String> description(@RequestParam(name="hash", required = true) String hash, HttpServletRequest request) {
+    public @ResponseBody ResponseEntity<String> description(@RequestParam(name="hash") String hash, HttpServletRequest request) {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "text/plain");
@@ -135,7 +135,7 @@ public class Api {
     }
 
     @GetMapping(value="/api/skin/search")
-    public @ResponseBody ResponseEntity<String[]> search(@RequestParam(name="query", required = true) String query, HttpServletRequest request) {
+    public @ResponseBody ResponseEntity<String[]> search(@RequestParam(name="query") String query, HttpServletRequest request) {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
