@@ -60,7 +60,7 @@ public class Api {
         String chosenHash = chosen.getName().replaceFirst("\\.txt$", "");
         ResponseEntity<byte[]> response = image(chosenHash);
         if (response.getStatusCode() != HttpStatus.OK) {
-            log.error("Error random image " + chosenHash);
+            log.error("Error random image {}", chosenHash);
             return new ResponseEntity<>(headers, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return response;
@@ -93,21 +93,19 @@ public class Api {
 
     @GetMapping(value = "/api/skin/description")
     public @ResponseBody ResponseEntity<String> description(@RequestParam(name="hash", required = true) String hash, HttpServletRequest request) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "text/plain");
         String realIp = request.getHeader("X-Real-IP");
         // prevent proxy requests for now :)
         if (realIp != null) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN.toString(), headers, HttpStatus.FORBIDDEN);
         }
         if (!isValidHash(hash)) {
-            HttpHeaders headers = new HttpHeaders();
-            headers.add("Content-Type", "text/plain");
-            return new ResponseEntity<>("BAD_REQUEST", headers, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST.toString(), headers, HttpStatus.BAD_REQUEST);
         }
         String description = Constants.skinManager.getDescription(hash);
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", "text/plain");
-        if (description == null) return new ResponseEntity<>("NOT_FOUND", headers, HttpStatus.NOT_FOUND);
-        if (Constants.skinManager.isUnsafe(description)) return new ResponseEntity<>(headers, HttpStatus.FORBIDDEN);
+        if (description == null) return new ResponseEntity<>(HttpStatus.NOT_FOUND.toString(), headers, HttpStatus.NOT_FOUND);
+        if (Constants.skinManager.isUnsafe(description)) return new ResponseEntity<>(HttpStatus.FORBIDDEN.toString(), headers, HttpStatus.FORBIDDEN);
         String[] lines = description.split("\n");
         return new ResponseEntity<>(lines.length > 0 ? lines[0] : "", headers, HttpStatus.OK);
     }
