@@ -119,11 +119,6 @@ public class Api {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "text/plain");
-        String realIp = request.getHeader("X-Real-IP");
-        // prevent proxy requests for now :)
-        if (realIp != null) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN.toString(), headers, HttpStatus.FORBIDDEN);
-        }
         if (!isValidHash(hash)) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST.toString(), headers, HttpStatus.BAD_REQUEST);
         }
@@ -139,11 +134,6 @@ public class Api {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
-        String realIp = request.getHeader("X-Real-IP");
-        // prevent proxy requests for now :)
-        if (realIp != null) {
-            return new ResponseEntity<>(new String[0], headers, HttpStatus.FORBIDDEN);
-        }
         // very basic search haha
         if (Constants.skinManager.isUnsafe(query)) {
             return new ResponseEntity<>(new String[0], headers, HttpStatus.FORBIDDEN);
