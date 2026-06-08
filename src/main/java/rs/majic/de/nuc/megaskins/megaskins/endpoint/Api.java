@@ -93,6 +93,11 @@ public class Api {
 
     @GetMapping(value = "/api/skin/description")
     public @ResponseBody ResponseEntity<String> description(@RequestParam(name="hash", required = true) String hash, HttpServletRequest request) {
+        String realIp = request.getHeader("X-Real-IP");
+        // prevent proxy requests for now :)
+        if (realIp != null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         if (!isValidHash(hash)) {
             HttpHeaders headers = new HttpHeaders();
             headers.add("Content-Type", "text/plain");
