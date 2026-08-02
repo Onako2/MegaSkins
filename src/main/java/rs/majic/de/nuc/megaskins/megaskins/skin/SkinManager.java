@@ -13,6 +13,8 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SkinManager {
     @Getter
@@ -21,6 +23,9 @@ public class SkinManager {
     private final File skinsDescriptionFolder;
 
     private static final HttpClient client = HttpClient.newBuilder().build();
+
+    // hash -> image
+    public final Map<String, SimpleImage> bannedImages = new ConcurrentHashMap<>();
 
     @Getter
     private String[] forbiddenTags = new String[]{"hitler", "naked", "nsfw"}; // default values;
@@ -118,6 +123,10 @@ public class SkinManager {
             }
         }
         return false;
+    }
+
+    public boolean isUnsafeHash(String hash) {
+        return bannedImages.containsKey(hash);
     }
 
     public String getDescription(String hash) {

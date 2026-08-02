@@ -1,6 +1,5 @@
 package rs.majic.de.nuc.megaskins.megaskins.endpoint;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -19,6 +18,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -36,7 +36,6 @@ public class Api {
 
     static void initialize() throws IOException {
         skinData = new ConcurrentHashMap<>();
-        bannedImages = new ConcurrentHashMap<>();
         File[] files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
         System.out.println("Processing skins...");
         for (File file : files) {
@@ -44,49 +43,64 @@ public class Api {
             String hash = file.getName().replace(".txt", "");
             skinData.put(hash, content);
             if (Constants.skinManager.isUnsafe(content)) {
-                BufferedImage image = ImageIO.read(Path.of("skins/", hash + ".png").toFile());
-                bannedImages.put(hash, SimpleImage.fromBufferedImage(image));
+                BufferedImage image = ImageIO.read(Constants.skinManager.getSkinsImageFolder()
+                        .toPath()
+                        .resolve(hash + ".png").toFile());
+                Constants.skinManager.bannedImages.put(hash, SimpleImage.fromBufferedImage(image));
             }
         }
         System.out.println("Filtering skins..");
         Map<String, SimpleImage> futureBan = new ConcurrentHashMap<>();
+        files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
         for (File file : files) {
-            String hash = file.getName().replace(".txt", "");
-            if (bannedImages.containsKey(hash)) {
+            String hash = file.getName().replace(".txt", "").replace(".png", "");
+            if (Constants.skinManager.isUnsafeHash(hash)) {
                 continue;
             }
-            BufferedImage bufferedImage = ImageIO.read(Path.of("skins/", hash + ".png").toFile());
-            SimpleImage image = SimpleImage.fromBufferedImage(bufferedImage);
-            if (SimpleImage.compare(image, image) < 0.0f) {
-                continue;
-            }
-            AtomicReference<Float> maxSimilarity = new AtomicReference<>((float) 0);
-            bannedImages.forEach((hashed, banned) -> {
-                if (maxSimilarity.get() < 0.95) {
-                    if (SimpleImage.compare(banned, banned) >= 0.0f) {
-                        float similarity = SimpleImage.compare(image, banned);
-                        if (similarity > maxSimilarity.get()) {
-                            maxSimilarity.set(similarity);
+            try {
+                BufferedImage bufferedImage = ImageIO.read(Constants.skinManager.getSkinsImageFolder()
+                        .toPath()
+                        .resolve(hash + ".png").toFile());
+                SimpleImage image = SimpleImage.fromBufferedImage(bufferedImage);
+                if (SimpleImage.compare(image, image) < 0.0f) {
+                    continue;
+                }
+                AtomicReference<Float> maxSimilarity = new AtomicReference<>((float) 0);
+                Constants.skinManager.bannedImages.forEach((hashed, banned) -> {
+                    if (maxSimilarity.get() < 0.95) {
+                        if (SimpleImage.compare(banned, banned) >= 0.0f) {
+                            float similarity = SimpleImage.compare(image, banned);
+                            if (similarity > maxSimilarity.get()) {
+                                if (similarity >= 0.95) {
+                                    System.out.println(hash + " matched with " + hashed + " " + similarity);
+                                }
+                                maxSimilarity.set(similarity);
+                            }
                         }
                     }
+                });
+                if (maxSimilarity.get() >= 0.95) {
+                    futureBan.put(hash, image);
+                    System.out.println("Ban: " + hash + " Percentage: " + maxSimilarity.get());
+                    System.out.println("Banned size: " + (Constants.skinManager.bannedImages.size() + futureBan.size()));
+                    File bannedDirectory = new File("banned");
+                    if (!bannedDirectory.isDirectory()) {
+                        Files.createDirectory(bannedDirectory.toPath());
+                    }
+                    try {
+                        Files.copy(Path.of("skins/", hash + ".png"), bannedDirectory.toPath().resolve(hash + ".png"));
+                    } catch (FileAlreadyExistsException ignore) {}
+                     catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
-            });
-            if (maxSimilarity.get() >= 0.95) {
-                futureBan.put(hash, image);
-                System.out.println("Ban: " + hash + " Percentage: " + maxSimilarity.get());
-                System.out.println("Banned size: " + (bannedImages.size() + futureBan.size()));
+            } catch (Exception e) {
+                System.err.println("Error reading skin image " + hash + ": " + e.getMessage());
+                e.printStackTrace();
             }
         }
         System.out.println("Processed skins!");
-        bannedImages.putAll(futureBan);
-        File bannedDirectory = new File("banned");
-        try {
-            Files.createDirectory(bannedDirectory.toPath());
-            for (String hashe : bannedImages.keySet()) {
-                // copy images
-                Files.copy(Path.of("skins/", hashe + ".png"), bannedDirectory.toPath().resolve(hashe + ".png"));
-            }
-        } catch (Exception ignore) {}
+        Constants.skinManager.bannedImages.putAll(futureBan);
     }
 
     static {
@@ -99,8 +113,6 @@ public class Api {
 
     // hash -> description
     static Map<String, String> skinData;
-    // hash -> image
-    static Map<String, SimpleImage> bannedImages;
     static final Random random = new Random();
     static final int MAX_RESULTS = 10;
 
@@ -168,7 +180,7 @@ public class Api {
     }
 
     @GetMapping(value = "/api/skin/description")
-    public @ResponseBody ResponseEntity<String> description(@RequestParam(name="hash") String hash, HttpServletRequest request) {
+    public @ResponseBody ResponseEntity<String> description(@RequestParam(name="hash") String hash) {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "text/plain");
@@ -183,7 +195,7 @@ public class Api {
     }
 
     @GetMapping(value="/api/skin/search")
-    public @ResponseBody ResponseEntity<String[]> search(@RequestParam(name="query") String query, HttpServletRequest request) {
+    public @ResponseBody ResponseEntity<String[]> search(@RequestParam(name="query") String query) {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
@@ -222,11 +234,11 @@ public class Api {
     }
 
     @GetMapping(value="/api/skin/safety")
-    public @ResponseBody ResponseEntity<Float> safety(@RequestParam(name="hash") String hash, HttpServletRequest request) throws IOException {
+    public @ResponseBody ResponseEntity<Float> safety(@RequestParam(name="hash") String hash) throws IOException {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
-        if (bannedImages.containsKey(hash)) {
+        if (Constants.skinManager.isUnsafeHash(hash)) {
             return new ResponseEntity<>(1.0f, headers, HttpStatus.OK);
         }
         Path base = Constants.skinManager.getSkinsImageFolder().toPath().toAbsolutePath().normalize();
@@ -234,11 +246,16 @@ public class Api {
         if (!target.startsWith(base) || !Files.exists(target)) {
             return new ResponseEntity<>(headers, HttpStatus.FORBIDDEN);
         }
+        if (!target.toFile().exists()) {
+            if (!Constants.skinManager.downloadSkin(hash, target.toFile())) {
+                return new ResponseEntity<>(headers, HttpStatus.NOT_FOUND);
+            }
+        }
         BufferedImage bufferedImage = ImageIO.read(target.toFile());
         SimpleImage image = SimpleImage.fromBufferedImage(bufferedImage);
         float highestSimilarity = 0;
-        for (int i = 0; i < bannedImages.size(); i++) {
-            SimpleImage banned = (SimpleImage) bannedImages.values().toArray()[i];
+        for (int i = 0; i < Constants.skinManager.bannedImages.size(); i++) {
+            SimpleImage banned = (SimpleImage) Constants.skinManager.bannedImages.values().toArray()[i];
             float similarity = SimpleImage.compare(banned, image);
             if (similarity > highestSimilarity) {
                 highestSimilarity = similarity;
