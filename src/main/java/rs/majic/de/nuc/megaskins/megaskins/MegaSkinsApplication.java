@@ -24,7 +24,7 @@ public class MegaSkinsApplication {
                     String cmd = line.trim().toLowerCase();
                     if ("stop".equals(cmd) || "shutdown".equals(cmd)) {
                         System.out.println("Shutdown command received. Stopping application...");
-                        int exitCode = org.springframework.boot.SpringApplication.exit(ctx, () -> 0);
+                        int exitCode = SpringApplication.exit(ctx, () -> 0);
                         System.exit(exitCode);
                         break;
                     }
@@ -36,5 +36,4 @@ public class MegaSkinsApplication {
         shutdownListener.setDaemon(true);
         shutdownListener.start();
     }
-
 }
