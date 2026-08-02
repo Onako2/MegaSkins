@@ -32,9 +32,7 @@ public class SimpleImage {
                 continue;
             }
             if (a.pixels[i].isPureBlackOrWhite() || b.pixels[i].isPureBlackOrWhite()) {
-                comparedEntries++;
                 completelyDarkOrCompletelyWhite++;
-                continue;
             }
             similarity += SimplePixel.compare(a.pixels[i], b.pixels[i]);
             comparedEntries++;
@@ -42,7 +40,7 @@ public class SimpleImage {
         if (comparedEntries < 500) {
             return -0.5f;
         }
-        if (completelyDarkOrCompletelyWhite > comparedEntries / 3) {
+        if (completelyDarkOrCompletelyWhite > comparedEntries / 1.5) {
             return -0.3f;
         }
         similarity /= comparedEntries;
