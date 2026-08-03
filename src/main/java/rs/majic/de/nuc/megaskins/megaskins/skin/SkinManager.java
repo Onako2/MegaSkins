@@ -147,7 +147,7 @@ public class SkinManager {
     }
 
     public static boolean isValidHash(String hash) {
-        return hash != null && hash.matches("^[0-9a-f]{63,64}$");
+        return hash != null && hash.matches("^[0-9a-f]{62,64}$");
     }
 
     public record SkinPreviewInformation(String hash, boolean unsafe) {
