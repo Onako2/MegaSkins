@@ -98,6 +98,7 @@ public class SkinManager {
     }
 
     public SkinPreviewInformation getSkinPreviewInformation(String hash) {
+        if (isUnsafeHash(hash)) return new SkinPreviewInformation(hash, true);
         try {
             Path path = skinsDescriptionFolder.toPath().resolve(hash + ".txt");
             if (!Files.exists(path)) {
@@ -143,6 +144,10 @@ public class SkinManager {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public static boolean isValidHash(String hash) {
+        return hash != null && hash.matches("^[0-9a-f]{63,64}$");
     }
 
     public record SkinPreviewInformation(String hash, boolean unsafe) {

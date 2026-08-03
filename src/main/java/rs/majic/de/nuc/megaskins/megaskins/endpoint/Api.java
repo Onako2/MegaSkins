@@ -30,6 +30,8 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static rs.majic.de.nuc.megaskins.megaskins.skin.SkinManager.isValidHash;
+
 @Slf4j
 @Controller
 public class Api {
@@ -144,7 +146,7 @@ public class Api {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "image/png");
         String chosenHash = skinData.keySet().toArray(String[]::new)[random.nextInt(skinData.size())];
-        if (Constants.skinManager.isUnsafe(skinData.get(chosenHash))) {
+        if (Constants.skinManager.isUnsafe(skinData.get(chosenHash)) || Constants.skinManager.isUnsafeHash(chosenHash)) {
             return random();
         }
         ResponseEntity<byte[]> response = image(chosenHash);
@@ -158,6 +160,11 @@ public class Api {
     @GetMapping(value = "/api/skin")
     public @ResponseBody ResponseEntity<SkinManager.SkinPreviewInformation> skin(@RequestParam(name="hash") String hash) {
         Constants.statistics.newRequest();
+        if (!isValidHash(hash)) {
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Type", "image/png");
+            return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
+        }
         return aSkinPreviewInfo(hash);
     }
 
@@ -165,7 +172,7 @@ public class Api {
     public @ResponseBody ResponseEntity<SkinManager.SkinPreviewInformation> skinRandom() {
         Constants.statistics.newRequest();
         String chosenHash = skinData.keySet().toArray(String[]::new)[random.nextInt(skinData.size())];
-        if (Constants.skinManager.isUnsafe(skinData.get(chosenHash))) {
+        if (Constants.skinManager.isUnsafe(skinData.get(chosenHash)) || Constants.skinManager.isUnsafeHash(chosenHash)) {
             return skinRandom();
         }
         return aSkinPreviewInfo(chosenHash);
@@ -189,7 +196,7 @@ public class Api {
         }
         String description = Constants.skinManager.getDescription(hash);
         if (description == null) return new ResponseEntity<>(HttpStatus.NOT_FOUND.toString(), headers, HttpStatus.NOT_FOUND);
-        if (Constants.skinManager.isUnsafe(description)) return new ResponseEntity<>(HttpStatus.FORBIDDEN.toString(), headers, HttpStatus.FORBIDDEN);
+        if (Constants.skinManager.isUnsafe(description) || Constants.skinManager.isUnsafeHash(hash)) return new ResponseEntity<>(HttpStatus.FORBIDDEN.toString(), headers, HttpStatus.FORBIDDEN);
         String[] lines = description.split("\n");
         return new ResponseEntity<>(lines.length > 0 ? lines[0] : "", headers, HttpStatus.OK);
     }
@@ -207,7 +214,7 @@ public class Api {
         String[] tokens = query.toLowerCase(Locale.ENGLISH).split("[^\\p{L}0-9']+");
         Map<String, Integer> resultsMap = new ConcurrentHashMap<>(); // hash -> score
         skinData.forEach((hash, description) -> {
-            if (Constants.skinManager.isUnsafe(description)) {
+            if (Constants.skinManager.isUnsafe(description) || Constants.skinManager.isUnsafeHash(hash)) {
                 return;
             }
             int score = 0;
@@ -238,6 +245,9 @@ public class Api {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
+        if (!isValidHash(hash)) {
+            return new ResponseEntity<>(-1.0f, headers, HttpStatus.BAD_REQUEST);
+        }
         if (Constants.skinManager.isUnsafeHash(hash)) {
             return new ResponseEntity<>(1.0f, headers, HttpStatus.OK);
         }
@@ -269,10 +279,5 @@ public class Api {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
         return new ResponseEntity<>(Constants.statistics.getStats(skinData.size()), headers, HttpStatus.OK);
-    }
-
-    private boolean isValidHash(String hash) {
-        if (hash == null) return false;
-        return hash.matches("^[0-9a-zA-Z_-]{8,128}$");
     }
 }
