@@ -15,9 +15,14 @@ import rs.majic.de.nuc.megaskins.megaskins.skin.SimpleImage;
 import rs.majic.de.nuc.megaskins.megaskins.skin.SkinManager;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -138,6 +143,60 @@ public class Api {
             return new ResponseEntity<>(headers, HttpStatus.FORBIDDEN);
         }
         return new ResponseEntity<>(Files.readAllBytes(target), headers, HttpStatus.OK);
+    }
+
+    @GetMapping(value="/api/skin/head")
+    public @ResponseBody ResponseEntity<byte[]> head(@RequestParam(name="hash") String hash, @RequestParam(name="scale", defaultValue = "1.0f") float scale) throws IOException {
+        Constants.statistics.newRequest();
+        if (scale < 1.0f || scale > 64.0f) {
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Type", "text/plain");
+            return new ResponseEntity<>("Scaling must be between 1.0 and 64.0".getBytes(StandardCharsets.UTF_8), headers, HttpStatus.BAD_REQUEST);
+        }
+        if (!isValidHash(hash)) {
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Type", "image/png");
+            return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
+        }
+        Path base = Constants.skinManager.getSkinsImageFolder().toPath().toAbsolutePath().normalize();
+        Path target = base.resolve(hash + ".png").toAbsolutePath().normalize();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "image/png");
+        if (!target.startsWith(base) || !Files.exists(target)) {
+            return new ResponseEntity<>(headers, HttpStatus.FORBIDDEN);
+        }
+        SkinManager.SkinPreviewInformation info = Constants.skinManager.getSkinPreviewInformation(hash);
+        if (info != null && info.unsafe()) {
+            return new ResponseEntity<>(headers, HttpStatus.FORBIDDEN);
+        }
+
+        BufferedImage image = ImageIO.read(target.toFile());
+        BufferedImage under = image.getSubimage(8, 8, 8, 8);
+        BufferedImage upper = image.getSubimage(40, 8, 8, 8);
+        BufferedImage output = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
+
+        Graphics g = output.getGraphics();
+        try {
+            g.setColor(Color.BLACK);
+            g.drawRect(0, 0, 8, 8);
+            g.drawImage(under, 0, 0, null);
+            g.drawImage(upper, 0, 0, null);
+        } finally {
+            g.dispose();
+        }
+
+        int a = (int) (8 * scale);
+        BufferedImage scaleImg = new BufferedImage(a, a, BufferedImage.TYPE_INT_ARGB);
+        AffineTransform scalingTransform = new AffineTransform();
+        scalingTransform.scale(scale, scale);
+        AffineTransformOp scaleOp = new AffineTransformOp(scalingTransform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+        BufferedImage img = scaleOp.filter(output, scaleImg);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(img, "png", baos);
+        byte[] bytes = baos.toByteArray();
+
+        return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
     }
 
     @GetMapping(value = "/api/skin/image/random")
