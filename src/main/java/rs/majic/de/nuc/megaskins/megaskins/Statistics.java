@@ -17,8 +17,8 @@ public class Statistics {
     }
 
     public Numbers getStats(int descriptionCount) {
-        return new Numbers(descriptionCount, requestsThisSession);
+        return new Numbers(descriptionCount, skinManager.bannedImages.size(), requestsThisSession);
     }
 
-    public record Numbers(int descriptionCount, int requestsThisSession) {}
+    public record Numbers(int descriptionCount, int bannedCount, int requestsThisSession) {}
 }

@@ -41,6 +41,20 @@ import static rs.majic.de.nuc.megaskins.megaskins.skin.SkinManager.isValidHash;
 @Controller
 public class Api {
 
+    public static final BufferedImage output = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
+    static final Random random = new Random();
+    static final int MAX_RESULTS = 10;
+    // hash -> description
+    static Map<String, String> skinData;
+
+    static {
+        try {
+            initialize();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     static void initialize() throws IOException {
         skinData = new ConcurrentHashMap<>();
         File[] files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
@@ -96,8 +110,8 @@ public class Api {
                     }
                     try {
                         Files.copy(Path.of("skins/", hash + ".png"), bannedDirectory.toPath().resolve(hash + ".png"));
-                    } catch (FileAlreadyExistsException ignore) {}
-                     catch (Exception e) {
+                    } catch (FileAlreadyExistsException ignore) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -110,21 +124,8 @@ public class Api {
         Constants.skinManager.bannedImages.putAll(futureBan);
     }
 
-    static {
-        try {
-            initialize();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    // hash -> description
-    static Map<String, String> skinData;
-    static final Random random = new Random();
-    static final int MAX_RESULTS = 10;
-
-    @GetMapping(value="/api/skin/image")
-    public @ResponseBody ResponseEntity<byte[]> image(@RequestParam(name="hash") String hash) throws IOException {
+    @GetMapping(value = "/api/skin/image")
+    public @ResponseBody ResponseEntity<byte[]> image(@RequestParam(name = "hash") String hash) throws IOException {
         Constants.statistics.newRequest();
         if (!isValidHash(hash)) {
             HttpHeaders headers = new HttpHeaders();
@@ -145,8 +146,8 @@ public class Api {
         return new ResponseEntity<>(Files.readAllBytes(target), headers, HttpStatus.OK);
     }
 
-    @GetMapping(value="/api/skin/head")
-    public @ResponseBody ResponseEntity<byte[]> head(@RequestParam(name="hash") String hash, @RequestParam(name="scale", defaultValue = "1.0f") float scale) throws IOException {
+    @GetMapping(value = "/api/skin/head")
+    public @ResponseBody ResponseEntity<byte[]> head(@RequestParam(name = "hash") String hash, @RequestParam(name = "scale", defaultValue = "1.0f") float scale) throws IOException {
         Constants.statistics.newRequest();
         if (scale < 1.0f || scale > 64.0f) {
             HttpHeaders headers = new HttpHeaders();
@@ -173,7 +174,6 @@ public class Api {
         BufferedImage image = ImageIO.read(target.toFile());
         BufferedImage under = image.getSubimage(8, 8, 8, 8);
         BufferedImage upper = image.getSubimage(40, 8, 8, 8);
-        BufferedImage output = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
 
         Graphics g = output.getGraphics();
         try {
@@ -185,6 +185,14 @@ public class Api {
             g.dispose();
         }
 
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        // why do upscaling stuff if it isn't needed :)
+        if (((int) scale * 8) == 8) {
+            ImageIO.write(output, "png", baos);
+            return new ResponseEntity<>(baos.toByteArray(), headers, HttpStatus.OK);
+        }
+
         int a = (int) (8 * scale);
         BufferedImage scaleImg = new BufferedImage(a, a, BufferedImage.TYPE_INT_ARGB);
         AffineTransform scalingTransform = new AffineTransform();
@@ -192,11 +200,8 @@ public class Api {
         AffineTransformOp scaleOp = new AffineTransformOp(scalingTransform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
         BufferedImage img = scaleOp.filter(output, scaleImg);
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(img, "png", baos);
-        byte[] bytes = baos.toByteArray();
-
-        return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+        return new ResponseEntity<>(baos.toByteArray(), headers, HttpStatus.OK);
     }
 
     @GetMapping(value = "/api/skin/image/random")
@@ -217,7 +222,7 @@ public class Api {
     }
 
     @GetMapping(value = "/api/skin")
-    public @ResponseBody ResponseEntity<SkinManager.SkinPreviewInformation> skin(@RequestParam(name="hash") String hash) {
+    public @ResponseBody ResponseEntity<SkinManager.SkinPreviewInformation> skin(@RequestParam(name = "hash") String hash) {
         Constants.statistics.newRequest();
         if (!isValidHash(hash)) {
             HttpHeaders headers = new HttpHeaders();
@@ -246,7 +251,7 @@ public class Api {
     }
 
     @GetMapping(value = "/api/skin/description")
-    public @ResponseBody ResponseEntity<String> description(@RequestParam(name="hash") String hash) {
+    public @ResponseBody ResponseEntity<String> description(@RequestParam(name = "hash") String hash) {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "text/plain");
@@ -254,14 +259,16 @@ public class Api {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST.toString(), headers, HttpStatus.BAD_REQUEST);
         }
         String description = Constants.skinManager.getDescription(hash);
-        if (description == null) return new ResponseEntity<>(HttpStatus.NOT_FOUND.toString(), headers, HttpStatus.NOT_FOUND);
-        if (Constants.skinManager.isUnsafe(description) || Constants.skinManager.isUnsafeHash(hash)) return new ResponseEntity<>(HttpStatus.FORBIDDEN.toString(), headers, HttpStatus.FORBIDDEN);
+        if (description == null)
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND.toString(), headers, HttpStatus.NOT_FOUND);
+        if (Constants.skinManager.isUnsafe(description) || Constants.skinManager.isUnsafeHash(hash))
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN.toString(), headers, HttpStatus.FORBIDDEN);
         String[] lines = description.split("\n");
         return new ResponseEntity<>(lines.length > 0 ? lines[0] : "", headers, HttpStatus.OK);
     }
 
-    @GetMapping(value="/api/skin/search")
-    public @ResponseBody ResponseEntity<String[]> search(@RequestParam(name="query") String query) {
+    @GetMapping(value = "/api/skin/search")
+    public @ResponseBody ResponseEntity<String[]> search(@RequestParam(name = "query") String query) {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
@@ -299,8 +306,8 @@ public class Api {
         return new ResponseEntity<>(results.stream().distinct().limit(MAX_RESULTS).toList().toArray(new String[0]), headers, HttpStatus.OK);
     }
 
-    @GetMapping(value="/api/skin/safety")
-    public @ResponseBody ResponseEntity<Float> safety(@RequestParam(name="hash") String hash) throws IOException {
+    @GetMapping(value = "/api/skin/safety")
+    public @ResponseBody ResponseEntity<Float> safety(@RequestParam(name = "hash") String hash) throws IOException {
         Constants.statistics.newRequest();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
@@ -333,7 +340,7 @@ public class Api {
         return new ResponseEntity<>(highestSimilarity, headers, HttpStatus.OK);
     }
 
-    @GetMapping(value="/api/stats")
+    @GetMapping(value = "/api/stats")
     public @ResponseBody ResponseEntity<Statistics.Numbers> stats() {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
