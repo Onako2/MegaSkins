@@ -27,12 +27,15 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static rs.majic.de.nuc.megaskins.megaskins.skin.SkinManager.isValidHash;
@@ -58,7 +61,7 @@ public class Api {
     static void initialize() throws IOException {
         skinData = new ConcurrentHashMap<>();
         File[] files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
-        System.out.println("Processing skins...");
+        log.info("Processing skins...");
         for (File file : files) {
             String content = Files.readString(file.toPath());
             String hash = file.getName().replace(".txt", "");
@@ -70,7 +73,7 @@ public class Api {
                 Constants.skinManager.bannedImages.put(hash, SimpleImage.fromBufferedImage(image));
             }
         }
-        System.out.println("Filtering skins..");
+        log.info("Filtering skins..");
         Map<String, SimpleImage> futureBan = new ConcurrentHashMap<>();
         files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
         for (File file : files) {
@@ -93,7 +96,7 @@ public class Api {
                             float similarity = SimpleImage.compare(image, banned);
                             if (similarity > maxSimilarity.get()) {
                                 if (similarity >= 0.95) {
-                                    System.out.println(hash + " matched with " + hashed + " " + similarity);
+                                    log.info("{} matched with {} {}", hash, hashed, similarity);
                                 }
                                 maxSimilarity.set(similarity);
                             }
@@ -102,8 +105,8 @@ public class Api {
                 });
                 if (maxSimilarity.get() >= 0.95) {
                     futureBan.put(hash, image);
-                    System.out.println("Ban: " + hash + " Percentage: " + maxSimilarity.get());
-                    System.out.println("Banned size: " + (Constants.skinManager.bannedImages.size() + futureBan.size()));
+                    log.info("Ban: {} Percentage: {}", hash, maxSimilarity.get());
+                    log.info("Banned size: {}", Constants.skinManager.bannedImages.size() + futureBan.size());
                     File bannedDirectory = new File("banned");
                     if (!bannedDirectory.isDirectory()) {
                         Files.createDirectory(bannedDirectory.toPath());
@@ -116,12 +119,24 @@ public class Api {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("Error reading skin image " + hash + ": " + e.getMessage());
-                e.printStackTrace();
+                log.error("Error reading skin image {}", hash, e);
             }
         }
-        System.out.println("Processed skins!");
+        log.info("Processed skins!");
         Constants.skinManager.bannedImages.putAll(futureBan);
+    }
+
+    private static String filterEnglish(String s) {
+        StringBuilder result = new StringBuilder(s.length());
+
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c >= 'a' && c <= 'z') {
+                result.append(c);
+            }
+        }
+
+        return result.toString();
     }
 
     @GetMapping(value = "/api/skin/image")
@@ -270,6 +285,8 @@ public class Api {
     @GetMapping(value = "/api/skin/search")
     public @ResponseBody ResponseEntity<String[]> search(@RequestParam(name = "query") String query) {
         Constants.statistics.newRequest();
+        log.info("Searching for: {}", query);
+        long time = System.currentTimeMillis();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
         // very basic search haha
@@ -277,19 +294,34 @@ public class Api {
             return new ResponseEntity<>(new String[0], headers, HttpStatus.FORBIDDEN);
         }
         List<String> results = new ArrayList<>();
-        String[] tokens = query.toLowerCase(Locale.ENGLISH).split("[^\\p{L}0-9']+");
-        Map<String, Integer> resultsMap = new ConcurrentHashMap<>(); // hash -> score
+        String queryLower = query.toLowerCase(Locale.ENGLISH);
+        String[] tokens = Arrays.stream(queryLower.split("[^\\p{L}0-9']+")).distinct().limit(10).toArray(String[]::new);
+        StringBuilder querySplittedBuilder = new StringBuilder();
+        for (String token : tokens) {
+            querySplittedBuilder.append(token);
+        }
+        final String querySplitted = querySplittedBuilder.toString();
+        Map<String, Integer> resultsMap = new HashMap<>(); // hash -> score
         skinData.forEach((hash, description) -> {
             if (Constants.skinManager.isUnsafe(description) || Constants.skinManager.isUnsafeHash(hash)) {
                 return;
             }
+            String descriptionLower = description.toLowerCase(Locale.ENGLISH);
             int score = 0;
+            int coveredTokens = 0;
             for (String token : tokens) {
-                int tokenScore = StringUtils.countOccurrencesOf(description.toLowerCase(Locale.ENGLISH), token);
+                int tokenScore = StringUtils.countOccurrencesOf(descriptionLower, token);
+                if (tokenScore > 0) {
+                    coveredTokens++;
+                }
                 if (tokenScore > 3) {
                     tokenScore = 3; // limit it to 3 :)
                 }
                 score += tokenScore;
+            }
+            score *= coveredTokens;
+            if (filterEnglish(descriptionLower.replace(',', ' ').replace('"', ' ').replace(" ", "")).contains(querySplitted)) {
+                score *= tokens.length;
             }
             if (score > 0) {
                 resultsMap.put(hash, score);
@@ -303,6 +335,7 @@ public class Api {
                 return score == hashScore;
             }).forEach(results::add);
         }
+        log.info("Time for search: {} ms.", System.currentTimeMillis() - time);
         return new ResponseEntity<>(results.stream().distinct().limit(MAX_RESULTS).toList().toArray(new String[0]), headers, HttpStatus.OK);
     }
 
