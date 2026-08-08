@@ -294,7 +294,7 @@ public class Api {
             return new ResponseEntity<>(new String[0], headers, HttpStatus.FORBIDDEN);
         }
         List<String> results = new ArrayList<>();
-        String queryLower = query.toLowerCase(Locale.ENGLISH);
+        String queryLower = query.replace("%20", " ").replace("+", " ").toLowerCase(Locale.ENGLISH);
         String[] tokens = Arrays.stream(queryLower.split("[^\\p{L}0-9']+")).distinct().limit(10).toArray(String[]::new);
         StringBuilder querySplittedBuilder = new StringBuilder();
         for (String token : tokens) {
