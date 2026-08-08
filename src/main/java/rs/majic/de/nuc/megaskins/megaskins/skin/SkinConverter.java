@@ -63,20 +63,10 @@ public final class SkinConverter {
 
         BufferedImage output = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
 
-        // Use Graphics2D for better control and to dispose properly
         Graphics2D g = output.createGraphics();
-
-        // Copy original 64x32 into top half of new image
         g.drawImage(input, 0, 0, null);
-
-        // Follow the Python skinconvert logic: copy two 16x16 regions from the
-        // original legacy skin into the lower-half areas expected by the
-        // modern 64x64 format so arms/legs aren't empty.
-        // rl = orig.crop((0, 16, 16, 32)) -> paste to (16,48)
         BufferedImage rl = input.getSubimage(0, 16, 16, 16);
         g.drawImage(rl, 16, 48, null);
-
-        // ra = orig.crop((40, 16, 56, 32)) -> paste to (32,48)
         BufferedImage ra = input.getSubimage(40, 16, 16, 16);
         g.drawImage(ra, 32, 48, null);
 
@@ -86,7 +76,7 @@ public final class SkinConverter {
     }
 
     /**
-     * Convenience method: load → convert → save.
+     * Convenience method: load -> convert -> save.
      */
     public static boolean convertFile(File inputFile, File outputFile) throws IOException {
         try {

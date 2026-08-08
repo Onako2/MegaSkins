@@ -17,16 +17,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SkinManager {
+    private static final HttpClient client = HttpClient.newBuilder().build();
+    // hash -> image
+    public final Map<String, SimpleImage> bannedImages = new ConcurrentHashMap<>();
     @Getter
     private final File skinsImageFolder;
     @Getter
     private final File skinsDescriptionFolder;
-
-    private static final HttpClient client = HttpClient.newBuilder().build();
-
-    // hash -> image
-    public final Map<String, SimpleImage> bannedImages = new ConcurrentHashMap<>();
-
     @Getter
     private String[] forbiddenTags = new String[]{"hitler", "naked", "nsfw"}; // default values;
 
@@ -34,13 +31,52 @@ public class SkinManager {
         this.skinsImageFolder = skinsImageFolder;
         this.skinsDescriptionFolder = skinsDescriptionFolder;
         File filterList = new File("banned_words.txt");
+        File templateSkin = new File("template.png");
         try {
             if (!filterList.exists()) {
                 filterList.createNewFile();
                 Files.writeString(filterList.toPath(), "hitler\nnaked\nnsfw");
             }
             this.forbiddenTags = Arrays.stream(Files.readString(filterList.toPath()).split("\n")).filter(string -> !string.isBlank()).toArray(String[]::new);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
+        if (!templateSkin.exists()) {
+            try {
+                HttpRequest req = HttpRequest.newBuilder()
+                        .GET()
+                        .uri(URI.create("https://raw.githubusercontent.com/Onako2/MegaSkins/refs/heads/master/template.png"))
+                        .header("User-Agent", "MegaSkins/1.0 (+https://github.com/Onako2/MegaSkins/")
+                        .timeout(Duration.ofSeconds(60))
+                        .build();
+                HttpResponse<byte[]> resp = client.send(req, HttpResponse.BodyHandlers.ofByteArray());
+
+                int code = resp.statusCode();
+                if (code == 200) {
+                    byte[] body = resp.body();
+                    if (body == null || body.length == 0) {
+                        System.err.println("Empty body for template skin, sus...");
+                    } else {
+                        Files.write(templateSkin.toPath(), body);
+                        System.out.println("Saved: " + templateSkin.getName());
+                    }
+                } else if (code == 404) {
+                    System.err.println("Not found (404): template skin");
+                } else if (code == 429) {
+                    System.err.println("Rate limited (429): template skin");
+                } else {
+                    System.err.println("Unexpected HTTP " + code + " for template skin");
+                }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted", ie);
+            } catch (IOException | RuntimeException e) {
+                System.err.println("Request failed for template skin " + e.getMessage());
+            }
+        }
+    }
+
+    public static boolean isValidHash(String hash) {
+        return hash != null && hash.matches("^[0-9a-f]{62,64}$");
     }
 
     public void initializeFilesIfMissing() throws IOException {
@@ -77,7 +113,7 @@ public class SkinManager {
                     System.err.println("Empty body for " + hash);
                 } else {
                     Files.write(output.toPath(), body);
-                    SkinConverter.convertFile(output, output);
+                    SkinConverter.convertFile(output, output); // 64x32 -> 64x64
                     System.out.println("Saved: " + output.getName());
                     return true;
                 }
@@ -92,7 +128,7 @@ public class SkinManager {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted", ie);
         } catch (IOException | RuntimeException e) {
-            System.err.println("Request failed for " + hash + e.getMessage());
+            System.err.println("Request failed for " + hash + " " + e.getMessage());
         }
         return false;
     }
@@ -144,10 +180,6 @@ public class SkinManager {
             e.printStackTrace();
             return null;
         }
-    }
-
-    public static boolean isValidHash(String hash) {
-        return hash != null && hash.matches("^[0-9a-f]{62,64}$");
     }
 
     public record SkinPreviewInformation(String hash, boolean unsafe) {
