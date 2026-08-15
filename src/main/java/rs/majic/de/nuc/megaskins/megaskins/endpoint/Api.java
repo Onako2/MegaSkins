@@ -39,6 +39,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static rs.majic.de.nuc.megaskins.megaskins.skin.SkinManager.isValidHash;
+import static rs.majic.de.nuc.megaskins.megaskins.skin.SkinManager.skinData;
 
 @Slf4j
 @Controller
@@ -47,8 +48,6 @@ public class Api {
     public static final BufferedImage output = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
     static final Random random = new Random();
     static final int MAX_RESULTS = 10;
-    // hash -> description
-    static Map<String, String> skinData;
 
     static {
         try {

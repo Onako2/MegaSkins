@@ -26,6 +26,8 @@ public class SkinManager {
     private final File skinsDescriptionFolder;
     @Getter
     private String[] forbiddenTags = new String[]{"hitler", "naked", "nsfw"}; // default values;
+    // hash -> description
+    public static Map<String, String> skinData;
 
     public SkinManager(File skinsImageFolder, File skinsDescriptionFolder) {
         this.skinsImageFolder = skinsImageFolder;
@@ -136,17 +138,11 @@ public class SkinManager {
     public SkinPreviewInformation getSkinPreviewInformation(String hash) {
         if (isUnsafeHash(hash)) return new SkinPreviewInformation(hash, true);
         try {
-            Path path = skinsDescriptionFolder.toPath().resolve(hash + ".txt");
-            if (!Files.exists(path)) {
-                return null;
-            }
-            String description = Files.readString(path);
+            String description = getDescription(hash);
             if (description.isBlank()) {
                 return null;
             }
             return new SkinPreviewInformation(hash, isUnsafe(description));
-        } catch (NoSuchFileException ignored) {
-            return null;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -168,14 +164,11 @@ public class SkinManager {
 
     public String getDescription(String hash) {
         try {
-            Path path = skinsDescriptionFolder.toPath().resolve(hash + ".txt");
-            String description = Files.readString(path);
-            if (description.isBlank()) {
+            String description = skinData.get(hash);
+            if (description == null || description.isBlank()) {
                 return null;
             }
             return description;
-        } catch (NoSuchFileException ignored) {
-            return null;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
