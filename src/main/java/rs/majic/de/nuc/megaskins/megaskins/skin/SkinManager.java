@@ -1,6 +1,9 @@
 package rs.majic.de.nuc.megaskins.megaskins.skin;
 
 import lombok.Getter;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import rs.majic.de.nuc.megaskins.megaskins.Constants;
 
 import java.io.File;
 import java.io.IOException;
@@ -139,7 +142,15 @@ public class SkinManager {
         if (isUnsafeHash(hash)) return new SkinPreviewInformation(hash, true);
         try {
             String description = getDescription(hash);
-            if (description.isBlank()) {
+            if (description == null || description.isBlank()) {
+                Path base = Constants.skinManager.getSkinsImageFolder().toPath().toAbsolutePath().normalize();
+                Path target = base.resolve(hash + ".png").toAbsolutePath().normalize();
+                if (!target.startsWith(base)) {
+                    return null;
+                }
+                if (!target.toFile().exists()) {
+                    Constants.skinManager.downloadSkin(hash, target.toFile());
+                }
                 return null;
             }
             return new SkinPreviewInformation(hash, isUnsafe(description));

@@ -15,7 +15,7 @@ Frontend repository: [MegaSkins-frontend](<https://github.com/Onako2/MegaSkins-f
 ## Setting up *(self-hosting)*
 
 > [!NOTE]
-> Self-hosting has the downside of having to get the data (descriptions and skins) by yourself. Attempting to scrape or massively query public deployments might get you blocked.
+> Self-hosting has the big downside of having to get the data (descriptions and skins) by yourself. Attempting to scrape or massively query public deployments might get you blocked.
 
 1. Download the [latest release](<https://github.com/Onako2/MegaSkins/releases>) jar file
 2. Put into an empty folder

@@ -177,10 +177,10 @@ public class Api {
         Path target = base.resolve(hash + ".png").toAbsolutePath().normalize();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "image/png");
+        SkinManager.SkinPreviewInformation info = Constants.skinManager.getSkinPreviewInformation(hash);
         if (!target.startsWith(base) || !Files.exists(target)) {
             return new ResponseEntity<>(headers, HttpStatus.FORBIDDEN);
         }
-        SkinManager.SkinPreviewInformation info = Constants.skinManager.getSkinPreviewInformation(hash);
         if (info != null && info.unsafe()) {
             return new ResponseEntity<>(headers, HttpStatus.FORBIDDEN);
         }
@@ -351,7 +351,7 @@ public class Api {
         }
         Path base = Constants.skinManager.getSkinsImageFolder().toPath().toAbsolutePath().normalize();
         Path target = base.resolve(hash + ".png").toAbsolutePath().normalize();
-        if (!target.startsWith(base) || !Files.exists(target)) {
+        if (!target.startsWith(base)) {
             return new ResponseEntity<>(headers, HttpStatus.FORBIDDEN);
         }
         if (!target.toFile().exists()) {
