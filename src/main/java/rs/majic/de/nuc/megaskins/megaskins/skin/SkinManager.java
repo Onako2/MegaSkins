@@ -1,8 +1,7 @@
 package rs.majic.de.nuc.megaskins.megaskins.skin;
 
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import lombok.extern.slf4j.Slf4j;
 import rs.majic.de.nuc.megaskins.megaskins.Constants;
 
 import java.io.File;
@@ -12,13 +11,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 public class SkinManager {
     private static final HttpClient client = HttpClient.newBuilder().build();
     // hash -> image
@@ -59,23 +58,23 @@ public class SkinManager {
                 if (code == 200) {
                     byte[] body = resp.body();
                     if (body == null || body.length == 0) {
-                        System.err.println("Empty body for template skin, sus...");
+                        log.error("Empty body for template skin, sus...");
                     } else {
                         Files.write(templateSkin.toPath(), body);
                         System.out.println("Saved: " + templateSkin.getName());
                     }
                 } else if (code == 404) {
-                    System.err.println("Not found (404): template skin");
+                    log.error("Not found (404): template skin");
                 } else if (code == 429) {
-                    System.err.println("Rate limited (429): template skin");
+                    log.error("Rate limited (429): template skin");
                 } else {
-                    System.err.println("Unexpected HTTP " + code + " for template skin");
+                    log.error("Unexpected HTTP {} for template skin", code);
                 }
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Interrupted", ie);
             } catch (IOException | RuntimeException e) {
-                System.err.println("Request failed for template skin " + e.getMessage());
+                log.error("Request failed for template skin", e);
             }
         }
     }
@@ -115,25 +114,25 @@ public class SkinManager {
             if (code == 200) {
                 byte[] body = resp.body();
                 if (body == null || body.length == 0) {
-                    System.err.println("Empty body for " + hash);
+                    log.error("Empty body for {}", hash);
                 } else {
                     Files.write(output.toPath(), body);
                     SkinConverter.convertFile(output, output); // 64x32 -> 64x64
-                    System.out.println("Saved: " + output.getName());
+                    log.info("Saved: {}", output.getName());
                     return true;
                 }
             } else if (code == 404) {
-                System.err.println("Not found (404): " + hash);
+                log.error("Not found (404): {}", hash);
             } else if (code == 429) {
-                System.err.println("Rate limited (429).");
+                log.error("Rate limited (429).");
             } else {
-                System.err.println("Unexpected HTTP " + code + " for " + hash);
+                log.error("Unexpected HTTP {} for {}", code, hash);
             }
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted", ie);
         } catch (IOException | RuntimeException e) {
-            System.err.println("Request failed for " + hash + " " + e.getMessage());
+            log.error("Request failed for {}", hash, e);
         }
         return false;
     }
@@ -155,7 +154,7 @@ public class SkinManager {
             }
             return new SkinPreviewInformation(hash, isUnsafe(description));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed getting skin info for {}", hash, e);
             return null;
         }
     }
@@ -181,7 +180,7 @@ public class SkinManager {
             }
             return description;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed getting description for {}", hash, e);
             return null;
         }
     }

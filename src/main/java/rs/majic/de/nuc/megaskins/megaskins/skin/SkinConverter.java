@@ -1,11 +1,14 @@
 package rs.majic.de.nuc.megaskins.megaskins.skin;
 
+import lombok.extern.slf4j.Slf4j;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
+@Slf4j
 // sowwy LLM generated
 public final class SkinConverter {
 
@@ -83,12 +86,12 @@ public final class SkinConverter {
             BufferedImage img = load(inputFile);
             BufferedImage converted = convertToModern(img);
             if (converted != null) {
-                System.out.println("Converted image " + outputFile.getName() + " from legacy to modern format");
+                log.info("Converted image {} from legacy to modern format", outputFile.getName());
                 save(converted, outputFile);
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed converting image {} to modern format", inputFile, e);
             return false;
         }
     }

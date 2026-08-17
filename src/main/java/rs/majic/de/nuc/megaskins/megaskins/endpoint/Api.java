@@ -35,7 +35,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static rs.majic.de.nuc.megaskins.megaskins.skin.SkinManager.isValidHash;
