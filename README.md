@@ -33,6 +33,11 @@ Frontend repository: [MegaSkins-frontend](<https://github.com/Onako2/MegaSkins-f
 7. Start the server and wait until flagged images have been loaded...
 8. 🎉 Setup's finished
 
+### Getting the data (description and skins) using very cheap labor (aka. GPUs/LLMs)
+
+You can download a list of skin hashes from archive.org (https://archive.org/details/minecraft-uuids-2025-09-01) and download all the skins using them.
+After that you can render your Minecraft skins with any library of your liking (so it is 3d). And finally you give the LLM the flat skin and the render of it and ask it to describe it. (prompt strongly depends on your model, I've asked the model to give me a description in line 1, and tags and what a skin portrays in line 3)
+
 ## Development
 
 1. Open project with any gradle-compatible IDE. Recommended: JetBrains IntelliJ IDEA

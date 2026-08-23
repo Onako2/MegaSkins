@@ -128,9 +128,9 @@ public class SkinManager {
             } else {
                 log.error("Unexpected HTTP {} for {}", code, hash);
             }
-        } catch (InterruptedException ie) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted", ie);
+            throw new RuntimeException("Interrupted", e);
         } catch (IOException | RuntimeException e) {
             log.error("Request failed for {}", hash, e);
         }

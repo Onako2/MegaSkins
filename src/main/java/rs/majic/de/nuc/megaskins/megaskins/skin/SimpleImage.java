@@ -20,7 +20,7 @@ public class SimpleImage {
     }
 
     public static float compare(@NonNull SimpleImage a, @NonNull SimpleImage b) {
-        // percentage value based on similarity between 0 and 1
+        // percentage value based on similarity between 0 and 1 (except inaccurate, then negative lol)
         if (a.pixels.length != b.pixels.length) {
             return -1;
         }

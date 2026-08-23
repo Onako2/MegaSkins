@@ -113,7 +113,7 @@ public class Api {
                         Files.copy(Path.of("skins/", hash + ".png"), bannedDirectory.toPath().resolve(hash + ".png"));
                     } catch (FileAlreadyExistsException ignore) {
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.error("Error while copying banned skin image", e);
                     }
                 }
             } catch (Exception e) {
