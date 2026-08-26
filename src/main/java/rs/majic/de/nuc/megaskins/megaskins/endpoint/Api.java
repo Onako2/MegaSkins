@@ -40,6 +40,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import static rs.majic.de.nuc.megaskins.megaskins.skin.SkinManager.isValidHash;
 import static rs.majic.de.nuc.megaskins.megaskins.skin.SkinManager.skinData;
 
+/**
+ * Main API method
+ */
 @Slf4j
 @Controller
 public class Api {
@@ -56,6 +59,9 @@ public class Api {
         }
     }
 
+    /**
+     * Initializes everything, takes ages
+     */
     static void initialize() throws IOException {
         skinData = new ConcurrentHashMap<>();
         File[] files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
@@ -124,6 +130,11 @@ public class Api {
         Constants.skinManager.bannedImages.putAll(futureBan);
     }
 
+    /**
+     * Filter for English characters
+     * @param s input String
+     * @return cleaned String
+     */
     private static String filterEnglish(String s) {
         StringBuilder result = new StringBuilder(s.length());
 

@@ -4,6 +4,9 @@ import rs.majic.de.nuc.megaskins.megaskins.skin.SkinManager;
 
 import java.io.File;
 
+/**
+ * Constant attributes used everywhere
+ */
 public class Constants {
     public static final SkinManager skinManager = new SkinManager(new File("skins/"), new File("skins_description/"));
     public static final Statistics statistics = new Statistics(skinManager);

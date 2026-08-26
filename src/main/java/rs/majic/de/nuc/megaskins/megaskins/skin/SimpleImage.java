@@ -12,13 +12,24 @@ import java.util.List;
 
 public class SimpleImage {
 
-    public final SimplePixel[] pixels;
+    /**
+     * pixels that are not transparent in template.png
+     */
     private static Pos2d[] allowedPixels = new Pos2d[0];
+    /**
+     * pixels of an image *wow*
+     */
+    public final SimplePixel[] pixels;
 
     private SimpleImage(SimplePixel[] pixels) {
         this.pixels = pixels;
     }
 
+    /**
+     * @param a image a
+     * @param b image b
+     * @return float between 0 and 1. -1 means that image sizes/pixel counts are different -0.5 means that there are too few pixels that aren't transparent. -0.3 means that too many pixels are black or white.
+     */
     public static float compare(@NonNull SimpleImage a, @NonNull SimpleImage b) {
         // percentage value based on similarity between 0 and 1 (except inaccurate, then negative lol)
         if (a.pixels.length != b.pixels.length) {
@@ -47,6 +58,13 @@ public class SimpleImage {
         return similarity;
     }
 
+    /**
+     * Convert BufferedImage to SimpleImage
+     *
+     * @param image input BufferedImage
+     * @return output SimpleImage
+     * @throws IOException template.png couldn't be loaded
+     */
     public static SimpleImage fromBufferedImage(@NonNull BufferedImage image) throws IOException {
         if (allowedPixels.length == 0) {
             // initialise
@@ -76,19 +94,21 @@ public class SimpleImage {
         return new SimpleImage(simplePixelList.toArray(new SimplePixel[0]));
     }
 
-    public static class SimplePixel {
-        public final byte r;
-        public final byte g;
-        public final byte b;
-        public final boolean hasAlpha;
+    /**
+     * A single pixel
+     *
+     * @param r        red value
+     * @param g        green value
+     * @param b        blue value
+     * @param hasAlpha if a pixel has alpha value
+     */
+    public record SimplePixel(byte r, byte g, byte b, boolean hasAlpha) {
 
-        public SimplePixel(byte r, byte g, byte b, boolean hasAlpha) {
-            this.r = r;
-            this.g = g;
-            this.b = b;
-            this.hasAlpha = hasAlpha;
-        }
-
+        /**
+         * @param a SimplePixel a
+         * @param b SimplePixel b
+         * @return similarity of the pixels
+         */
         public static float compare(SimplePixel a, SimplePixel b) {
             int r1 = Byte.toUnsignedInt(a.r);
             int g1 = Byte.toUnsignedInt(a.g);
@@ -107,6 +127,9 @@ public class SimpleImage {
             return 1.0f - (float) totalDifference / 765.0f;
         }
 
+        /**
+         * @return is a pixel black or white?
+         */
         public boolean isPureBlackOrWhite() {
             int r = Byte.toUnsignedInt(this.r);
             int g = Byte.toUnsignedInt(this.g);
@@ -117,5 +140,11 @@ public class SimpleImage {
         }
     }
 
-    public record Pos2d(int x, int y) {}
+    /**
+     * Basic class for storing x and y coordinates
+     * @param x x pos
+     * @param y y pos
+     */
+    public record Pos2d(int x, int y) {
+    }
 }

@@ -48,6 +48,8 @@ public final class SkinConverter {
      * Converts a legacy 64x32 skin into a modern 64x64 skin.
      *
      * If the skin is already 64x64, it is returned unchanged.
+     * @param input potential legacy skin
+     * @return modern 64x64 skin
      */
     public static BufferedImage convertToModern(BufferedImage input) {
         if (input == null) {
@@ -80,6 +82,9 @@ public final class SkinConverter {
 
     /**
      * Convenience method: load -> convert -> save.
+     * @param inputFile input image fie
+     * @param outputFile output image file
+     * @return did the operation succeed?
      */
     public static boolean convertFile(File inputFile, File outputFile) throws IOException {
         try {

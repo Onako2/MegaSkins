@@ -13,6 +13,11 @@ import java.io.InputStreamReader;
 @SpringBootApplication()
 public class MegaSkinsApplication {
 
+    /**
+     * main method
+     * @param args arguments
+     * @throws IOException I don't like warnings
+     */
     public static void main(String[] args) throws IOException {
         log.info("Initializing MegaSkins, please wait...");
         Constants.skinManager.initializeFilesIfMissing();

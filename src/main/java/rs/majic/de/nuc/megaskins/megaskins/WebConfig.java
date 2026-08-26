@@ -6,6 +6,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+    /**
+     * basic safety stuff
+     */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         // Restrict CORS to localhost (any port) and nuc.de.majic.rs

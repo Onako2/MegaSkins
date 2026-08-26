@@ -83,6 +83,9 @@ public class SkinManager {
         return hash != null && hash.matches("^[0-9a-f]{62,64}$");
     }
 
+    /**
+     * Ensures a minimum environment for running MegaSkins
+     */
     public void initializeFilesIfMissing() throws IOException {
         if (!skinsImageFolder.isDirectory()) {
             skinsImageFolder.delete();
@@ -99,6 +102,12 @@ public class SkinManager {
         }
     }
 
+    /**
+     * Method for downloading skins by supplying a hash
+     * @param hash the skin hash
+     * @param output file
+     * @return has the download succeded?
+     */
     public boolean downloadSkin(String hash, File output) {
         HttpRequest req = HttpRequest.newBuilder()
                 .GET()
@@ -185,6 +194,9 @@ public class SkinManager {
         }
     }
 
+    /**
+     * basic info about skin
+     */
     public record SkinPreviewInformation(String hash, boolean unsafe) {
     }
 }
