@@ -63,71 +63,7 @@ public class Api {
      * Initializes everything, takes ages
      */
     static void initialize() throws IOException {
-        skinData = new ConcurrentHashMap<>();
-        File[] files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
-        log.info("Processing skins...");
-        for (File file : files) {
-            String content = Files.readString(file.toPath());
-            String hash = file.getName().replace(".txt", "");
-            skinData.put(hash, content);
-            if (Constants.skinManager.isUnsafe(content)) {
-                BufferedImage image = ImageIO.read(Constants.skinManager.getSkinsImageFolder()
-                        .toPath()
-                        .resolve(hash + ".png").toFile());
-                Constants.skinManager.bannedImages.put(hash, SimpleImage.fromBufferedImage(image));
-            }
-        }
-        log.info("Filtering skins..");
-        Map<String, SimpleImage> futureBan = new ConcurrentHashMap<>();
-        files = Constants.skinManager.getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
-        for (File file : files) {
-            String hash = file.getName().replace(".txt", "").replace(".png", "");
-            if (Constants.skinManager.isUnsafeHash(hash)) {
-                continue;
-            }
-            try {
-                BufferedImage bufferedImage = ImageIO.read(Constants.skinManager.getSkinsImageFolder()
-                        .toPath()
-                        .resolve(hash + ".png").toFile());
-                SimpleImage image = SimpleImage.fromBufferedImage(bufferedImage);
-                if (SimpleImage.compare(image, image) < 0.0f) {
-                    continue;
-                }
-                AtomicReference<Float> maxSimilarity = new AtomicReference<>((float) 0);
-                Constants.skinManager.bannedImages.forEach((hashed, banned) -> {
-                    if (maxSimilarity.get() < 0.95) {
-                        if (SimpleImage.compare(banned, banned) >= 0.0f) {
-                            float similarity = SimpleImage.compare(image, banned);
-                            if (similarity > maxSimilarity.get()) {
-                                if (similarity >= 0.95) {
-                                    log.info("{} matched with {} {}", hash, hashed, similarity);
-                                }
-                                maxSimilarity.set(similarity);
-                            }
-                        }
-                    }
-                });
-                if (maxSimilarity.get() >= 0.95) {
-                    futureBan.put(hash, image);
-                    log.info("Ban: {} Percentage: {}", hash, maxSimilarity.get());
-                    log.info("Banned size: {}", Constants.skinManager.bannedImages.size() + futureBan.size());
-                    File bannedDirectory = new File("banned");
-                    if (!bannedDirectory.isDirectory()) {
-                        Files.createDirectory(bannedDirectory.toPath());
-                    }
-                    try {
-                        Files.copy(Path.of("skins/", hash + ".png"), bannedDirectory.toPath().resolve(hash + ".png"));
-                    } catch (FileAlreadyExistsException ignore) {
-                    } catch (Exception e) {
-                        log.error("Error while copying banned skin image", e);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Error reading skin image {}", hash, e);
-            }
-        }
-        log.info("Processed skins!");
-        Constants.skinManager.bannedImages.putAll(futureBan);
+        Constants.skinManager.initialize();
     }
 
     /**

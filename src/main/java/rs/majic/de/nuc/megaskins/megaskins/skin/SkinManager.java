@@ -2,24 +2,29 @@ package rs.majic.de.nuc.megaskins.megaskins.skin;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import rs.majic.de.nuc.megaskins.megaskins.Constants;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class SkinManager {
     private static final HttpClient client = HttpClient.newBuilder().build();
+    // hash -> description
+    public static Map<String, String> skinData;
     // hash -> image
     public final Map<String, SimpleImage> bannedImages = new ConcurrentHashMap<>();
     @Getter
@@ -28,8 +33,6 @@ public class SkinManager {
     private final File skinsDescriptionFolder;
     @Getter
     private String[] forbiddenTags = new String[]{"hitler", "naked", "nsfw"}; // default values;
-    // hash -> description
-    public static Map<String, String> skinData;
 
     public SkinManager(File skinsImageFolder, File skinsDescriptionFolder) {
         this.skinsImageFolder = skinsImageFolder;
@@ -84,6 +87,77 @@ public class SkinManager {
     }
 
     /**
+     * Initializes everything, takes ages
+     */
+    public void initialize() throws IOException {
+        skinData = new ConcurrentHashMap<>();
+        File[] files = getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
+        log.info("Processing skins...");
+        for (File file : files) {
+            String content = Files.readString(file.toPath());
+            String hash = file.getName().replace(".txt", "");
+            skinData.put(hash, content);
+            if (isUnsafe(content)) {
+                BufferedImage image = ImageIO.read(getSkinsImageFolder()
+                        .toPath()
+                        .resolve(hash + ".png").toFile());
+                bannedImages.put(hash, SimpleImage.fromBufferedImage(image));
+            }
+        }
+        log.info("Filtering skins..");
+        Map<String, SimpleImage> futureBan = new ConcurrentHashMap<>();
+        files = getSkinsDescriptionFolder().listFiles(f -> f.getName().endsWith(".txt"));
+        for (File file : files) {
+            String hash = file.getName().replace(".txt", "").replace(".png", "");
+            if (isUnsafeHash(hash)) {
+                continue;
+            }
+            try {
+                BufferedImage bufferedImage = ImageIO.read(getSkinsImageFolder()
+                        .toPath()
+                        .resolve(hash + ".png").toFile());
+                SimpleImage image = SimpleImage.fromBufferedImage(bufferedImage);
+                if (SimpleImage.compare(image, image) < 0.0f) {
+                    continue;
+                }
+                AtomicReference<Float> maxSimilarity = new AtomicReference<>((float) 0);
+                bannedImages.forEach((hashed, banned) -> {
+                    if (maxSimilarity.get() < 0.95) {
+                        if (SimpleImage.compare(banned, banned) >= 0.0f) {
+                            float similarity = SimpleImage.compare(image, banned);
+                            if (similarity > maxSimilarity.get()) {
+                                if (similarity >= 0.95) {
+                                    log.info("{} matched with {} {}", hash, hashed, similarity);
+                                }
+                                maxSimilarity.set(similarity);
+                            }
+                        }
+                    }
+                });
+                if (maxSimilarity.get() >= 0.95) {
+                    futureBan.put(hash, image);
+                    log.info("Ban: {} Percentage: {}", hash, maxSimilarity.get());
+                    log.info("Banned size: {}", bannedImages.size() + futureBan.size());
+                    File bannedDirectory = new File("banned");
+                    if (!bannedDirectory.isDirectory()) {
+                        Files.createDirectory(bannedDirectory.toPath());
+                    }
+                    try {
+                        Files.copy(Path.of("skins/", hash + ".png"), bannedDirectory.toPath().resolve(hash + ".png"));
+                    } catch (FileAlreadyExistsException ignore) {
+                    } catch (Exception e) {
+                        log.error("Error while copying banned skin image", e);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error reading skin image {}", hash, e);
+            }
+        }
+        log.info("Processed skins!");
+        bannedImages.putAll(futureBan);
+    }
+
+    /**
      * Ensures a minimum environment for running MegaSkins
      */
     public void initializeFilesIfMissing() throws IOException {
@@ -104,7 +178,8 @@ public class SkinManager {
 
     /**
      * Method for downloading skins by supplying a hash
-     * @param hash the skin hash
+     *
+     * @param hash   the skin hash
      * @param output file
      * @return has the download succeded?
      */
@@ -151,13 +226,13 @@ public class SkinManager {
         try {
             String description = getDescription(hash);
             if (description == null || description.isBlank()) {
-                Path base = Constants.skinManager.getSkinsImageFolder().toPath().toAbsolutePath().normalize();
+                Path base = getSkinsImageFolder().toPath().toAbsolutePath().normalize();
                 Path target = base.resolve(hash + ".png").toAbsolutePath().normalize();
                 if (!target.startsWith(base)) {
                     return null;
                 }
                 if (!target.toFile().exists()) {
-                    Constants.skinManager.downloadSkin(hash, target.toFile());
+                    downloadSkin(hash, target.toFile());
                 }
                 return null;
             }
