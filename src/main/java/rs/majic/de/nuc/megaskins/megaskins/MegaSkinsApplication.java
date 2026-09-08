@@ -25,7 +25,7 @@ public class MegaSkinsApplication {
 
         Config.MegaSkinsConfiguration config = Config.getConfig();
         if (config == null) {
-            log.error("Something went terribly wrong! Shuttdown down MegaSkins");
+            log.error("Something went terribly wrong! Shutting down MegaSkins");
             return;
         }
         Constants.skinManager.initializeFilesIfMissing();
