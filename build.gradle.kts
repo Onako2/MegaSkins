@@ -19,16 +19,9 @@ repositories {
 }
 
 dependencies {
-//    implementation("org.springframework.boot:spring-boot-starter-jdbc")
-//    implementation("org.springframework.boot:spring-boot-starter-restclient")
-//    implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-webclient")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
-//    implementation("org.springframework.boot:spring-boot-starter-websocket")
-//    implementation("org.springframework.boot:spring-boot-starter-actuator")
     compileOnly("org.projectlombok:lombok")
-//    runtimeOnly("com.mysql:mysql-connector-j")
-//    runtimeOnly("org.mariadb.jdbc:mariadb-java-client")
-//    runtimeOnly("org.xerial:sqlite-jdbc")
     annotationProcessor("org.projectlombok:lombok")
+    implementation("com.google.code.gson:gson:2.14.0")
 }
