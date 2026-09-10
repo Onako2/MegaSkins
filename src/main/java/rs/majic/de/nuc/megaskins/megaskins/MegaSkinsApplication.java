@@ -39,8 +39,6 @@ public class MegaSkinsApplication {
         app.setDefaultProperties(
                 properties
         );
-        // spring.application.name=MegaSkins
-        //server.address=0.0.0.0
         ConfigurableApplicationContext ctx = app.run(args);
         Thread shutdownListener = new Thread(() -> {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
