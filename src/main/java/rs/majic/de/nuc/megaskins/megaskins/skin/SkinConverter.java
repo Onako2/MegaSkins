@@ -46,7 +46,6 @@ public final class SkinConverter {
 
     /**
      * Converts a legacy 64x32 skin into a modern 64x64 skin.
-     *
      * If the skin is already 64x64, it is returned unchanged.
      * @param input potential legacy skin
      * @return modern 64x64 skin
